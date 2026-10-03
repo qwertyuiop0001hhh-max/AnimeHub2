@@ -1,0 +1,9 @@
+const express=require("express"),multer=require("multer"),fs=require("fs"),path=require("path"),crypto=require("crypto");
+const app=express(),PORT=process.env.PORT||3000,ROOT=__dirname,UP=path.join(ROOT,"uploads"),DATA=path.join(ROOT,"data");
+fs.mkdirSync(UP,{recursive:true});let videos=JSON.parse(fs.readFileSync(path.join(DATA,"videos.json"),"utf8"));const SECRET="18f4e2b48e4fdf718f94d0a0ebe7afc1f5b2b0ab6f987b8e826282981e355786",sessions=new Set();
+app.use(express.json());app.use(express.static(path.join(ROOT,"public")));app.use("/uploads",express.static(UP));
+app.get("/api/anime",(q,s)=>s.sendFile(path.join(DATA,"anime.json")));app.get("/api/videos",(q,s)=>s.json(videos));
+app.post("/api/dev/login",(q,s)=>{let h=crypto.createHash("sha256").update(String(q.body.pattern||"")).digest("hex");if(h!==SECRET)return s.status(401).json({ok:false});let t=crypto.randomBytes(24).toString("hex");sessions.add(t);s.json({ok:true,token:t})});
+const storage=multer.diskStorage({destination:UP,filename:(q,f,cb)=>cb(null,crypto.randomUUID()+path.extname(f.originalname||".mp4"))});
+app.post("/api/upload",multer({storage,limits:{fileSize:3*1024*1024*1024}}).single("video"),(q,s)=>{let t=q.headers.authorization?.replace("Bearer ","");if(!sessions.has(t)){if(q.file)fs.rmSync(q.file.path,{force:true});return s.sendStatus(401)}let k=`${q.body.animeId}:${q.body.season}:${q.body.episode}`;videos[k]={url:"/uploads/"+path.basename(q.file.path),name:q.file.originalname};fs.writeFileSync(path.join(DATA,"videos.json"),JSON.stringify(videos));s.json({ok:true,video:videos[k]})});
+app.get("*",(q,s)=>s.sendFile(path.join(ROOT,"public","index.html")));app.listen(PORT,"0.0.0.0",()=>console.log("Anime Hub 2 on "+PORT));

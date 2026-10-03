@@ -1,0 +1,1 @@
+Anime Hub 2 rebuilt. Render: Build npm install / Start npm start. Постеры локальные SVG, API не нужен. Видео загружайте только если имеете права на их распространение.
